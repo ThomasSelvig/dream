@@ -31,12 +31,12 @@ export class Player {
   private setupInputHandlers(): void {
     document.addEventListener('keydown', (event) => {
       this.keys.add(event.code.toLowerCase())
-      Log.debug('Key pressed:', event.code.toLowerCase())
+      // Log.debug('Key pressed:', event.code.toLowerCase())
     })
 
     document.addEventListener('keyup', (event) => {
       this.keys.delete(event.code.toLowerCase())
-      Log.debug('Key released:', event.code.toLowerCase())
+      // Log.debug('Key released:', event.code.toLowerCase())
     })
   }
 
@@ -57,25 +57,25 @@ export class Player {
     
     const right = this.camera.getRightVector()
 
-    Log.debug('Forward:', forward)
-    Log.debug('Right:', right)
-    Log.debug('Active keys:', Array.from(this.keys))
+    // Log.debug('Forward:', forward)
+    // Log.debug('Right:', right)
+    // Log.debug('Active keys:', Array.from(this.keys))
 
     if (this.keys.has('keyw')) {
       inputDirection.add(forward)
-      Log.debug('Moving forward')
+      // Log.debug('Moving forward')
     }
     if (this.keys.has('keys')) {
       inputDirection.sub(forward)
-      Log.debug('Moving backward')
+      // Log.debug('Moving backward')
     }
     if (this.keys.has('keya')) {
       inputDirection.sub(right)
-      Log.debug('Moving left')
+      // Log.debug('Moving left')
     }
     if (this.keys.has('keyd')) {
       inputDirection.add(right)
-      Log.debug('Moving right')
+      // Log.debug('Moving right')
     }
 
     if (inputDirection.length() > 0) {
@@ -117,6 +117,7 @@ export class Player {
     // Apply gravity
     if (!this.physics.isGrounded(this.physicsBody.collider)) {
       this.velocity.y += -9.81 * deltaTime
+      // Log.debug(`${this.velocity.y}`)
     } else {
       if (this.velocity.y < 0) {
         this.velocity.y = 0
@@ -129,10 +130,8 @@ export class Player {
       this.velocity.z * deltaTime
     )
 
-    // Use character controller for horizontal movement, direct position update for vertical
-    if (Math.abs(translation.x) > 0.0001 || Math.abs(translation.z) > 0.0001 || Math.abs(translation.y) > 0.0001) {
-      this.physics.moveCharacter(this.physicsBody.collider, translation)
-    }
+    // Always apply movement through character controller to handle gravity and collisions
+    this.physics.moveCharacter(this.physicsBody.collider, translation)
   }
 
   private syncCameraWithPhysics(): void {

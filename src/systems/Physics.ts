@@ -46,8 +46,6 @@ export class Physics {
       return
     }
 
-    Log.debug('Computing movement for:', desiredTranslation)
-
     this.characterController.computeColliderMovement(
       collider,
       { x: desiredTranslation.x, y: desiredTranslation.y, z: desiredTranslation.z },
@@ -58,16 +56,23 @@ export class Physics {
     const correctedMovement = this.characterController.computedMovement()
     const currentTranslation = collider.parent()?.translation()
     
-    Log.debug('Current position:', currentTranslation)
-    Log.debug('Corrected movement:', correctedMovement)
-    
-    if (currentTranslation && correctedMovement) {
-      const newPosition = {
-        x: currentTranslation.x + correctedMovement.x,
-        y: currentTranslation.y + correctedMovement.y,
-        z: currentTranslation.z + correctedMovement.z
+    if (currentTranslation) {
+      // If character controller returns zero movement but we have desired Y movement,
+      // apply the Y movement directly while using corrected X/Z from controller
+      const finalMovement = {
+        x: correctedMovement.x,
+        y: Math.abs(correctedMovement.x) < 0.0001 && Math.abs(correctedMovement.z) < 0.0001 && Math.abs(desiredTranslation.y) > 0.0001 
+            ? desiredTranslation.y 
+            : correctedMovement.y,
+        z: correctedMovement.z
       }
-      Log.debug('Setting new position:', newPosition)
+
+      const newPosition = {
+        x: currentTranslation.x + finalMovement.x,
+        y: currentTranslation.y + finalMovement.y,
+        z: currentTranslation.z + finalMovement.z
+      }
+      
       collider.parent()?.setTranslation(newPosition, true)
     }
   }
