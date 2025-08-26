@@ -1,24 +1,37 @@
 import './style.css'
-import typescriptLogo from './typescript.svg'
-import viteLogo from '/vite.svg'
-import { setupCounter } from './counter.ts'
+import * as THREE from 'three'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import Stats from 'three/addons/libs/stats.module.js'
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
+import('@dimforge/rapier3d').then(RAPIER => {
+    // Use the RAPIER module here.
+    let gravity = { x: 0.0, y: -9.81, z: 0.0 };
+    let world = new RAPIER.World(gravity);
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://www.typescriptlang.org/" target="_blank">
-      <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
-    </a>
-    <h1>Vite + TypeScript</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite and TypeScript logos to learn more
-    </p>
-  </div>
-`
+    // Create the ground
+    let groundColliderDesc = RAPIER.ColliderDesc.cuboid(10.0, 0.1, 10.0);
+    world.createCollider(groundColliderDesc);
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+    // Create a dynamic rigid-body.
+    let rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic()
+        .setTranslation(0.0, 1.0, 0.0);
+    let rigidBody = world.createRigidBody(rigidBodyDesc);
+
+    // Create a cuboid collider attached to the dynamic rigidBody.
+    let colliderDesc = RAPIER.ColliderDesc.cuboid(0.5, 0.5, 0.5);
+    let collider = world.createCollider(colliderDesc, rigidBody);
+
+    // Game loop. Replace by your own game loop system.
+    let gameLoop = () => {
+        // Step the simulation forward.  
+        world.step();
+
+        // Get and print the rigid-body's position.
+        let position = rigidBody.translation();
+        console.log("Rigid-body position: ", position.x, position.y);
+
+        setTimeout(gameLoop, 16);
+    };
+
+    gameLoop();
+})

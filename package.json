@@ -10,7 +10,8 @@
   },
   "devDependencies": {
     "typescript": "~5.8.3",
-    "vite": "^7.1.2"
+    "vite": "^7.1.2",
+    "vite-plugin-wasm": "^3.5.0"
   },
   "dependencies": {
     "@dimforge/rapier3d": "^0.18.2",
