@@ -106,7 +106,7 @@ export class Player {
 
   }
 
-  private handleJump(deltaTime: number): void {
+  private handleJump(_deltaTime: number): void {
     if (this.keys.has('space') && this.physics.isGrounded(this.physicsBody.collider)) {
       this.velocity.y = this.jumpSpeed
       Log.debug('Jumping!')

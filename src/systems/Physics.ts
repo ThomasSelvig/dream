@@ -82,7 +82,7 @@ export class Physics {
     return this.characterController.computedGrounded()
   }
 
-  update(deltaTime: number): void {
+  update(_deltaTime: number): void {
     this.world.step()
   }
 

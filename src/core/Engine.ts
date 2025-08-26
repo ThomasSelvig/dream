@@ -3,12 +3,14 @@ import { Renderer } from './Renderer'
 import { Camera } from './Camera'
 import { Physics } from '../systems/Physics'
 import { Player } from '../game/Player'
+import { AIAgent } from '../game/AIAgent'
 
 export class Engine {
   private renderer: Renderer
   private camera: Camera
   private physics: Physics
   private player: Player
+  private aiAgent: AIAgent
   private scene: THREE.Scene
   private clock: THREE.Clock
   private isRunning = false
@@ -20,11 +22,13 @@ export class Engine {
     this.camera = new Camera()
     this.physics = new Physics()
     this.player = new Player(this.camera, this.physics)
+    this.aiAgent = new AIAgent(this.scene, this.physics, this.player)
   }
 
   async init(): Promise<void> {
     await this.physics.init()
     await this.player.init()
+    await this.aiAgent.init()
     this.renderer.init()
     this.setupScene()
     this.setupEventListeners()
@@ -94,6 +98,7 @@ export class Engine {
 
     this.physics.update(deltaTime)
     this.player.update(deltaTime)
+    this.aiAgent.update(deltaTime)
 
     this.renderer.render(this.camera.getCamera())
 
