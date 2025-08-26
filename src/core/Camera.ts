@@ -8,7 +8,9 @@ export class Camera {
   private maxPolarAngle = Math.PI
 
   constructor() {
-    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+    // TODO move back to 75 fov for immersive effect
+    // this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+    this.camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000)
     this.camera.position.set(0, 1.8, 5)
     this.setupPointerLock()
   }

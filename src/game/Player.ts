@@ -1,7 +1,6 @@
 import * as THREE from 'three'
 import { Camera } from '../core/Camera'
 import { Physics } from '../systems/Physics'
-import { Log } from '../utils/Logger'
 
 export class Player {
   private camera: Camera
@@ -109,7 +108,7 @@ export class Player {
   private handleJump(_deltaTime: number): void {
     if (this.keys.has('space') && this.physics.isGrounded(this.physicsBody.collider)) {
       this.velocity.y = this.jumpSpeed
-      Log.debug('Jumping!')
+      // Log.debug('Jumping!')
     }
   }
 

@@ -12,10 +12,13 @@ export class AIAgent {
   private physicsBody: any = null
   private velocity = new THREE.Vector3()
   
-  private moveSpeed = 2.0
+  private moveSpeed = 2.5 // player speed is (5.0)
+  private followDistance = 1.5 // Stay 1 meter away from player
   private pathfindingUpdateRate = 0.1 // Update pathfinding 10 times per second
   private lastPathfindingUpdate = 0
   private targetPosition = new THREE.Vector3()
+  private trackingEnabled = false // Start with tracking disabled
+  private modelSize = new THREE.Vector3()
 
   constructor(scene: THREE.Scene, physics: Physics, player: Player) {
     this.scene = scene
@@ -43,8 +46,13 @@ export class AIAgent {
       
       this.model = gltf.scene
       if (this.model) {
-        this.model.scale.set(0.5, 0.5, 0.5) // Scale down the cat model
-        this.model.position.set(-3, 0, -3) // Start position away from player
+        // scale it down
+        const scale = 0.05
+        this.model.scale.set(scale, scale, scale) // Scale down the cat model
+        // dynamically translate the geometry of the cat to its feet
+        const box = new THREE.Box3().setFromObject(this.model)
+        this.modelSize = box.getSize(new THREE.Vector3());
+        this.model.position.set(-10, (this.modelSize.y * scale) / 2 -1.5, -10) // Start position away from player
       }
       
       // Enable shadows for the model
@@ -86,27 +94,20 @@ export class AIAgent {
     const position = this.model.position
     const startPosition = new THREE.Vector3(position.x, position.y + 0.5, position.z)
     
-    // Create a physics body similar to the player but smaller
-    const RAPIER = this.physics.getRAPIER()
-    const world = this.physics.getWorld()
-    
-    const rigidBodyDesc = RAPIER.RigidBodyDesc.kinematicPositionBased()
-      .setTranslation(startPosition.x, startPosition.y, startPosition.z)
-    
-    const rigidBody = world.createRigidBody(rigidBodyDesc)
-    
-    const colliderDesc = RAPIER.ColliderDesc.capsule(0.4, 0.2) // Smaller than player
-    const collider = world.createCollider(colliderDesc, rigidBody)
-    
-    this.physicsBody = { rigidBody, collider }
+    // Use the dedicated AI physics methods
+    this.physicsBody = this.physics.createAIAgentCollider(startPosition)
     Log.debug('AIAgent: Physics body created')
   }
 
   update(deltaTime: number): void {
     if (!this.model || !this.physicsBody) return
 
-    this.updatePathfinding(deltaTime)
-    this.updateMovement(deltaTime)
+    // Only update AI behavior if tracking is enabled
+    if (this.trackingEnabled) {
+      this.updatePathfinding(deltaTime)
+      this.updateMovement(deltaTime)
+    }
+    
     this.syncModelWithPhysics()
   }
 
@@ -137,8 +138,8 @@ export class AIAgent {
     
     const distanceToTarget = direction.length()
     
-    // Only move if we're not already close to the target
-    if (distanceToTarget > 1.0) {
+    // Only move if we're further than the follow distance
+    if (distanceToTarget > this.followDistance) {
       direction.normalize()
       
       // Set velocity towards target
@@ -146,7 +147,7 @@ export class AIAgent {
       this.velocity.z = direction.z * this.moveSpeed
       
       // Apply gravity
-      if (!this.physics.isGrounded(this.physicsBody.collider)) {
+      if (!this.physics.isAIGrounded(this.physicsBody.collider)) {
         this.velocity.y += -9.81 * deltaTime
       } else {
         if (this.velocity.y < 0) {
@@ -154,14 +155,14 @@ export class AIAgent {
         }
       }
       
-      // Apply movement
+      // Apply movement using AI character controller
       const translation = new THREE.Vector3(
         this.velocity.x * deltaTime,
         this.velocity.y * deltaTime,
         this.velocity.z * deltaTime
       )
       
-      this.physics.moveCharacter(this.physicsBody.collider, translation)
+      this.physics.moveAICharacter(this.physicsBody.collider, translation)
       
       // Rotate model to face movement direction
       if (this.model && (Math.abs(this.velocity.x) > 0.1 || Math.abs(this.velocity.z) > 0.1)) {
@@ -175,7 +176,7 @@ export class AIAgent {
     if (!this.model || !this.physicsBody?.rigidBody) return
 
     const position = this.physicsBody.rigidBody.translation()
-    this.model.position.set(position.x, position.y - 0.5, position.z) // Offset to ground level
+    this.model.position.set(position.x, position.y + 2.5, position.z)
   }
 
   getPosition(): THREE.Vector3 {
@@ -187,5 +188,30 @@ export class AIAgent {
 
   getModel(): THREE.Object3D | null {
     return this.model
+  }
+
+  setTrackingEnabled(enabled: boolean): void {
+    this.trackingEnabled = enabled
+    Log.info(`AIAgent: Tracking ${enabled ? 'enabled' : 'disabled'}`)
+  }
+
+  isTrackingEnabled(): boolean {
+    return this.trackingEnabled
+  }
+
+  toggleTracking(): void {
+    this.setTrackingEnabled(!this.trackingEnabled)
+  }
+
+  getModelSize(): THREE.Vector3 {
+    return this.modelSize.clone()
+  }
+
+  setPathfindingRate(rate: number): void {
+    this.pathfindingUpdateRate = rate
+  }
+
+  getPathfindingRate(): number {
+    return this.pathfindingUpdateRate
   }
 }
