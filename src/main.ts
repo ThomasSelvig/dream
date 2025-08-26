@@ -2,6 +2,7 @@ import './style.css'
 import { Engine } from './core/Engine'
 import { Log, LogLevel } from './utils/Logger'
 
+// Log.setLevel(LogLevel.DEBUG)
 Log.setLevel(LogLevel.INFO)
 
 async function main() {

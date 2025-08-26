@@ -114,24 +114,24 @@ export class Player {
   }
 
   private applyMovement(deltaTime: number): void {
-    const translation = new THREE.Vector3(
-      this.velocity.x * deltaTime,
-      this.velocity.y * deltaTime,
-      this.velocity.z * deltaTime
-    )
-
-    Log.debug('Velocity:', this.velocity)
-    Log.debug('Translation:', translation)
-    Log.debug('Physics body exists:', !!this.physicsBody)
-
-    this.physics.moveCharacter(this.physicsBody.collider, translation)
-
+    // Apply gravity
     if (!this.physics.isGrounded(this.physicsBody.collider)) {
       this.velocity.y += -9.81 * deltaTime
     } else {
       if (this.velocity.y < 0) {
         this.velocity.y = 0
       }
+    }
+
+    const translation = new THREE.Vector3(
+      this.velocity.x * deltaTime,
+      this.velocity.y * deltaTime,
+      this.velocity.z * deltaTime
+    )
+
+    // Use character controller for horizontal movement, direct position update for vertical
+    if (Math.abs(translation.x) > 0.0001 || Math.abs(translation.z) > 0.0001 || Math.abs(translation.y) > 0.0001) {
+      this.physics.moveCharacter(this.physicsBody.collider, translation)
     }
   }
 

@@ -20,14 +20,21 @@ This is a 3D TypeScript game engine/framework for a hide-and-seek game with the 
 - Vite with vite-plugin-wasm for WebAssembly support
 
 **Current Implementation:**
-- `src/main.ts` contains basic Rapier3d physics setup with dynamic rigid body simulation
-- Vite config includes wasm plugin to handle Rapier3d WebAssembly files
-- Physics world runs in a game loop stepping every 16ms
+- Fully functional 3D engine with modular architecture implemented
+- First-person camera with mouse look and pointer lock controls
+- WASD movement with physics-based character controller
+- Jumping mechanics with gravity and ground detection
+- Layered logging system (DEBUG/INFO/WARN/ERROR levels)
 
-**Planned Structure (see docs/project-structure.md):**
-- `src/core/` - Engine fundamentals (Engine, Scene, Camera, Renderer, Input)
-- `src/systems/` - Modular systems (Physics, Audio, AI, Pathfinding, Interaction)  
-- `src/game/` - Game logic (Player, AIAgent, House, GameState)
+**Implemented Structure:**
+- `src/core/` - Engine (game loop), Renderer (Three.js), Camera (first-person controls)
+- `src/systems/` - Physics (Rapier3d character controller integration)
+- `src/game/` - Player (movement, jumping, input handling)
+- `src/utils/` - Logger (multi-level debug system)
+
+**Remaining Structure (see docs/project-structure.md):**
+- `src/systems/` - Audio, AI, Pathfinding, Interaction systems
+- `src/game/` - AIAgent, House, GameState
 - `src/assets/` - Asset loading and management
 
 **Game Requirements (see docs/requirements.md):**
@@ -43,4 +50,7 @@ This is a 3D TypeScript game engine/framework for a hide-and-seek game with the 
 - AI pathfinding requires navigation mesh generation from house geometry
 - Player detection combines line-of-sight (Three.js raycasting) with audio proximity
 
-The engine is in early development - currently only physics simulation exists without visual rendering.
+**Development Notes:**
+- Use `Log.setLevel(LogLevel.DEBUG)` in main.ts for detailed debugging (causes lag)
+- Character controller has known issue with vertical-only movement (jumping while stationary)
+- Ground plane and reference sphere provide basic scene visualization
