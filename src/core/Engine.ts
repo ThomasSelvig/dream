@@ -7,6 +7,8 @@ import { Player } from '../game/Player'
 import { AIAgent } from '../game/AIAgent'
 import { DebugGUI } from '../utils/DebugGUI'
 import { PerformanceOptimizer } from '../utils/PerformanceOptimizer'
+import { ShaderManager } from '../utils/ShaderManager'
+import { HorrorPostProcessor } from '../utils/HorrorPostProcessor'
 
 export class Engine {
   private renderer: Renderer
@@ -15,6 +17,8 @@ export class Engine {
   private player: Player
   private aiAgent: AIAgent
   private debugGUI: DebugGUI
+  private shaderManager: ShaderManager
+  private horrorPostProcessor: HorrorPostProcessor | null = null
   private scene: THREE.Scene
   private clock: THREE.Clock
   private isRunning = false
@@ -30,6 +34,7 @@ export class Engine {
     this.player = new Player(this.camera, this.physics)
     this.aiAgent = new AIAgent(this.scene, this.physics, this.player)
     this.debugGUI = new DebugGUI()
+    this.shaderManager = new ShaderManager()
   }
 
   async init(): Promise<void> {
@@ -40,6 +45,7 @@ export class Engine {
     this.setupScene()
     this.physics.setDebugScene(this.scene)
     await this.loadSpiralStairs()
+    await this.setupHorrorPostProcessing()
     this.setupEventListeners()
     this.debugGUI.setAIAgent(this.aiAgent)
   }
@@ -124,6 +130,17 @@ export class Engine {
     }
   }
 
+  private async setupHorrorPostProcessing(): Promise<void> {
+    try {
+      this.horrorPostProcessor = new HorrorPostProcessor(this.renderer.getRenderer(), this.scene, this.camera.getCamera())
+      await this.horrorPostProcessor.init()
+      console.log('Horror post-processing initialized successfully')
+    } catch (error) {
+      console.error('Failed to initialize horror post-processing, falling back to normal rendering:', error)
+      this.horrorPostProcessor = null
+    }
+  }
+
   private setupEventListeners(): void {
     window.addEventListener('resize', this.onWindowResize.bind(this))
     
@@ -152,6 +169,9 @@ export class Engine {
   private onWindowResize(): void {
     this.camera.updateAspect(window.innerWidth / window.innerHeight)
     this.renderer.setSize(window.innerWidth, window.innerHeight)
+    if (this.horrorPostProcessor) {
+      this.horrorPostProcessor.setSize(window.innerWidth, window.innerHeight)
+    }
   }
 
   start(): void {
@@ -174,6 +194,10 @@ export class Engine {
     this.physics.update(deltaTime)
     this.player.update(deltaTime)
     this.aiAgent.update(deltaTime)
+    this.shaderManager.updateTime(deltaTime)
+    if (this.horrorPostProcessor) {
+      this.horrorPostProcessor.update(deltaTime)
+    }
     
     // Performance optimizations
     if (this.performanceOptimizationsEnabled) {
@@ -191,7 +215,12 @@ export class Engine {
     }
     
     this.debugGUI.update(deltaTime)
-    this.renderer.render(this.camera.getCamera())
+    
+    if (this.horrorPostProcessor) {
+      this.horrorPostProcessor.render()
+    } else {
+      this.renderer.render(this.camera.getCamera())
+    }
 
     requestAnimationFrame(this.gameLoop.bind(this))
   }

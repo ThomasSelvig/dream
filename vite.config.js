@@ -3,4 +3,5 @@ import wasm from 'vite-plugin-wasm'
 
 export default defineConfig({
   plugins: [wasm()],
+  assetsInclude: ['**/*.vert', '**/*.frag', '**/*.glsl'],
 })
