@@ -24,13 +24,15 @@ export class HorrorPostProcessor {
     console.log('EffectComposer created, renderPass added')
   }
 
-  async init(): Promise<void> {
+  async init(debugMode: boolean = false): Promise<void> {
     try {
-      console.log('Loading horror post-processing shader...')
-      const shaderProgram = await ShaderLoader.loadShaderProgram(
-        '/src/shaders/horror-post.vert',
-        '/src/shaders/horror-post.frag'
-      )
+      const shaderType = debugMode ? 'debug passthrough' : 'horror post-processing'
+      console.log(`Loading ${shaderType} shader...`)
+      
+      const vertPath = debugMode ? '/src/shaders/debug-passthrough.vert' : '/src/shaders/horror-post.vert'
+      const fragPath = debugMode ? '/src/shaders/debug-passthrough.frag' : '/src/shaders/horror-post.frag'
+      
+      const shaderProgram = await ShaderLoader.loadShaderProgram(vertPath, fragPath)
 
       // Create shader material
       const shaderMaterial = new THREE.ShaderMaterial({
@@ -50,7 +52,7 @@ export class HorrorPostProcessor {
       // Set proper size
       this.composer.setSize(window.innerWidth, window.innerHeight)
       
-      console.log('Horror post-processing shader loaded successfully')
+      console.log(`${shaderType} shader loaded successfully`)
       console.log('EffectComposer passes count:', this.composer.passes.length)
     } catch (error) {
       console.error('Failed to load horror post-processing shader:', error)

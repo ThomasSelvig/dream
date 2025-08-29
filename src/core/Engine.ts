@@ -133,7 +133,7 @@ export class Engine {
   private async setupHorrorPostProcessing(): Promise<void> {
     try {
       this.horrorPostProcessor = new HorrorPostProcessor(this.renderer.getRenderer(), this.scene, this.camera.getCamera())
-      await this.horrorPostProcessor.init()
+      await this.horrorPostProcessor.init(false) // Disable debug mode - use horror shader
       console.log('Horror post-processing initialized successfully')
     } catch (error) {
       console.error('Failed to initialize horror post-processing, falling back to normal rendering:', error)

@@ -20,17 +20,17 @@ void main() {
   // Sample the original scene
   vec4 color = texture2D(tDiffuse, uv);
   
-  // Dark color grading - crush blacks, reduce overall brightness
-  color.rgb = pow(color.rgb, vec3(1.5)); // Darken midtones
-  color.rgb *= 0.3; // Reduce overall brightness
+  // Gentle color grading - preserve visibility
+  color.rgb = pow(color.rgb, vec3(1.05)); // Very subtle midtone adjustment
+  color.rgb *= 0.85; // Mild brightness reduction
   
   // Add purple/red horror tint
   color.rgb *= vec3(1.0, 0.8, 0.9);
   
-  // Vignette effect - darken edges
+  // Subtle vignette effect
   vec2 center = uv - 0.5;
-  float vignette = 1.0 - dot(center, center) * 1.5;
-  vignette = smoothstep(0.0, 1.0, vignette);
+  float vignette = 1.0 - dot(center, center) * 0.4;
+  vignette = smoothstep(0.5, 1.0, vignette);
   color.rgb *= vignette;
   
   // Subtle film grain/noise
@@ -41,8 +41,8 @@ void main() {
   float flickerValue = flicker(time);
   color.rgb *= flickerValue;
   
-  // Contrast boost for dramatic effect
-  color.rgb = (color.rgb - 0.5) * 1.2 + 0.5;
+  // Gentle contrast adjustment
+  color.rgb = (color.rgb - 0.5) * 1.05 + 0.5;
   
   // Clamp to avoid overexposure
   color.rgb = clamp(color.rgb, 0.0, 1.0);
