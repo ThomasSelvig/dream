@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { Renderer } from './Renderer'
 import { Camera } from './Camera'
 import { Physics } from '../systems/Physics'
@@ -37,6 +38,8 @@ export class Engine {
     await this.aiAgent.init()
     this.renderer.init()
     this.setupScene()
+    this.physics.setDebugScene(this.scene)
+    await this.loadSpiralStairs()
     this.setupEventListeners()
     this.debugGUI.setAIAgent(this.aiAgent)
   }
@@ -78,6 +81,49 @@ export class Engine {
     this.scene.add(sphereMesh)
   }
 
+  private async loadSpiralStairs(): Promise<void> {
+    const loader = new GLTFLoader()
+    
+    try {
+      const gltf = await loader.loadAsync('/spiral stairs.glb')
+      const stairsModel = gltf.scene
+      
+      // Check the model's bounding box to understand its size
+      const bbox = new THREE.Box3().setFromObject(stairsModel)
+      const size = bbox.getSize(new THREE.Vector3())
+      const center = bbox.getCenter(new THREE.Vector3())
+      
+      console.log('Spiral stairs - Size:', size, 'Center:', center)
+      
+      // Position the stairs closer and at ground level
+      // stairsModel.position.set(5, 10, 0)
+      // stairsModel.scale.setScalar(40) // Ensure normal scale
+      stairsModel.scale.setScalar(2)
+      stairsModel.castShadow = true
+      stairsModel.receiveShadow = true
+      
+      stairsModel.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.castShadow = true
+          child.receiveShadow = true
+        }
+      })
+      
+      this.scene.add(stairsModel)
+      
+      // Update world matrix after positioning and adding to scene
+      stairsModel.updateMatrixWorld(true)
+      
+      const colliders = this.physics.createModelCollider(stairsModel)
+      this.physics.createDebugVisualization(colliders)
+      
+      console.log('Spiral stairs loaded and positioned at (5, 0, 0)')
+      
+    } catch (error) {
+      console.error('Failed to load spiral stairs model:', error)
+    }
+  }
+
   private setupEventListeners(): void {
     window.addEventListener('resize', this.onWindowResize.bind(this))
     
@@ -88,6 +134,12 @@ export class Engine {
       // Handle Enter key for AI tracking toggle
       if (event.code === 'Enter') {
         this.aiAgent.toggleTracking()
+        event.preventDefault()
+      }
+      
+      // Handle 'C' key for collision debug toggle
+      if (event.code === 'KeyC') {
+        this.physics.toggleDebugVisualization()
         event.preventDefault()
       }
     })

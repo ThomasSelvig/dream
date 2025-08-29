@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { Log } from '../utils/Logger'
 
 export class Physics {
@@ -6,6 +7,8 @@ export class Physics {
   private world: any
   private characterController: any
   private aiCharacterController: any
+  private debugScene?: THREE.Scene
+  private debugMeshes: THREE.Mesh[] = []
 
   async init(): Promise<void> {
     this.RAPIER = await import('@dimforge/rapier3d')
@@ -15,7 +18,7 @@ export class Physics {
 
     this.characterController = this.world.createCharacterController(0.01)
     this.characterController.setApplyImpulsesToDynamicBodies(true)
-    this.characterController.enableAutostep(0.5, 0.2, true)
+    this.characterController.enableAutostep(1., 0.5, true)
     this.characterController.enableSnapToGround(0.5)
     
     // Create separate character controller for AI agents
@@ -53,6 +56,85 @@ export class Physics {
     const collider = this.world.createCollider(colliderDesc, rigidBody)
     
     return { rigidBody, collider }
+  }
+
+  createModelCollider(model: THREE.Object3D): any[] {
+    const colliders: any[] = []
+    
+    // Ensure world matrices are updated
+    model.updateMatrixWorld(true)
+    
+    // Create individual trimesh colliders for each mesh component
+    let colliderCount = 0
+    model.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.geometry) {
+        try {
+          // Get the mesh's world-transformed vertices
+          const geometry = child.geometry.clone()
+          geometry.applyMatrix4(child.matrixWorld)
+          
+          // Extract vertices and indices for trimesh
+          const positionAttribute = geometry.getAttribute('position')
+          const vertices = new Float32Array(positionAttribute.array)
+          
+          let indices: Uint32Array
+          if (geometry.index) {
+            indices = new Uint32Array(geometry.index.array)
+          } else {
+            // Generate indices for non-indexed geometry
+            const vertexCount = vertices.length / 3
+            indices = new Uint32Array(vertexCount)
+            for (let i = 0; i < vertexCount; i++) {
+              indices[i] = i
+            }
+          }
+          
+          // Create trimesh collider with actual geometry
+          const colliderDesc = this.RAPIER.ColliderDesc.trimesh(vertices, indices)
+          const collider = this.world.createCollider(colliderDesc)
+          colliders.push(collider)
+          colliderCount++
+          
+          Log.info(`✓ Created trimesh collider ${colliderCount} for ${child.name || 'unnamed'} with ${vertices.length/3} vertices, ${indices.length/3} triangles`)
+          
+        } catch (error) {
+          Log.error(`Failed to create trimesh collider for ${child.name}:`, error)
+          
+          // Fallback to box collider
+          const bbox = new THREE.Box3().setFromObject(child)
+          const size = bbox.getSize(new THREE.Vector3())
+          const center = bbox.getCenter(new THREE.Vector3())
+          
+          const colliderDesc = this.RAPIER.ColliderDesc.cuboid(
+            size.x / 2, 
+            size.y / 2, 
+            size.z / 2
+          ).setTranslation(center.x, center.y, center.z)
+          
+          const collider = this.world.createCollider(colliderDesc)
+          colliders.push(collider)
+          colliderCount++
+          
+          Log.info(`✓ Created fallback box collider ${colliderCount} for ${child.name || 'unnamed'}`)
+        }
+      }
+    })
+    
+    // If no individual meshes worked, fall back to overall box
+    if (colliders.length === 0) {
+      Log.info('No individual meshes found, creating overall box collider')
+      const bbox = new THREE.Box3().setFromObject(model)
+      const size = bbox.getSize(new THREE.Vector3())
+      const center = bbox.getCenter(new THREE.Vector3())
+      const colliderDesc = this.RAPIER.ColliderDesc.cuboid(size.x / 2, size.y / 2, size.z / 2)
+        .setTranslation(center.x, center.y, center.z)
+      
+      const collider = this.world.createCollider(colliderDesc)
+      colliders.push(collider)
+    }
+    
+    Log.info(`Total colliders created: ${colliders.length}`)
+    return colliders
   }
 
   moveCharacter(
@@ -157,5 +239,96 @@ export class Physics {
 
   getRAPIER(): any {
     return this.RAPIER
+  }
+
+  setDebugScene(scene: THREE.Scene): void {
+    this.debugScene = scene
+  }
+
+  createDebugVisualization(colliders: any[]): void {
+    if (!this.debugScene) return
+
+    this.clearDebugVisualization()
+
+    colliders.forEach((collider, index) => {
+      const shape = collider.shape
+      
+      if (shape.type === this.RAPIER.ShapeType.Trimesh) {
+        // For trimesh, create wireframe visualization
+        const vertices = shape.vertices
+        const indices = shape.indices
+        
+        const geometry = new THREE.BufferGeometry()
+        geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3))
+        geometry.setIndex(new THREE.BufferAttribute(indices, 1))
+        
+        const material = new THREE.MeshBasicMaterial({ 
+          color: 0x00ff00, 
+          wireframe: true,
+          transparent: true,
+          opacity: 0.5 
+        })
+        
+        const debugMesh = new THREE.Mesh(geometry, material)
+        this.debugScene.add(debugMesh)
+        this.debugMeshes.push(debugMesh)
+        
+        Log.info(`Created debug visualization for trimesh collider ${index}`)
+      }
+      else if (shape.type === this.RAPIER.ShapeType.Cuboid) {
+        // For cuboids, create wireframe box
+        const halfExtents = shape.halfExtents
+        const geometry = new THREE.BoxGeometry(
+          halfExtents.x * 2, 
+          halfExtents.y * 2, 
+          halfExtents.z * 2
+        )
+        
+        const material = new THREE.MeshBasicMaterial({ 
+          color: 0xff0000, 
+          wireframe: true,
+          transparent: true,
+          opacity: 0.5 
+        })
+        
+        const debugMesh = new THREE.Mesh(geometry, material)
+        
+        const translation = collider.translation()
+        debugMesh.position.set(translation.x, translation.y, translation.z)
+        
+        const rotation = collider.rotation()
+        debugMesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
+        
+        this.debugScene.add(debugMesh)
+        this.debugMeshes.push(debugMesh)
+        
+        Log.info(`Created debug visualization for cuboid collider ${index}`)
+      }
+    })
+  }
+
+  clearDebugVisualization(): void {
+    if (!this.debugScene) return
+
+    this.debugMeshes.forEach(mesh => {
+      this.debugScene!.remove(mesh)
+      mesh.geometry.dispose()
+      if (mesh.material instanceof THREE.Material) {
+        mesh.material.dispose()
+      }
+    })
+    this.debugMeshes = []
+  }
+
+  toggleDebugVisualization(): void {
+    if (this.debugMeshes.length === 0) {
+      Log.info('No debug visualization meshes available')
+      return
+    }
+    
+    this.debugMeshes.forEach(mesh => {
+      mesh.visible = !mesh.visible
+    })
+    Log.info(`Debug visualization ${this.debugMeshes.length > 0 && this.debugMeshes[0].visible ? 'enabled' : 'disabled'}`)
   }
 }
