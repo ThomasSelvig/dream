@@ -51,17 +51,51 @@ export class Engine {
   }
 
   private setupScene(): void {
-    this.scene.background = new THREE.Color(0x87CEEB)
+    this.scene.background = new THREE.Color(0x404050)
 
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.4)
+    // Horror shader compatible ambient light
+    const ambientLight = new THREE.AmbientLight(0x404040, 5.0)
     this.scene.add(ambientLight)
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6)
-    directionalLight.position.set(10, 10, 5)
-    directionalLight.castShadow = true
-    directionalLight.shadow.mapSize.width = 2048
-    directionalLight.shadow.mapSize.height = 2048
-    this.scene.add(directionalLight)
+    // Main ceiling light - horror shader intensity
+    const ceilingLight = new THREE.PointLight(0xfff0d4, 20.0, 50)
+    ceilingLight.position.set(0, 6, 0)
+    ceilingLight.castShadow = true
+    ceilingLight.shadow.mapSize.width = 1024
+    ceilingLight.shadow.mapSize.height = 1024
+    ceilingLight.shadow.camera.near = 0.1
+    ceilingLight.shadow.camera.far = 60
+    this.scene.add(ceilingLight)
+
+    // Table/floor lamp - horror shader intensity
+    const tableLamp = new THREE.PointLight(0xffe4b5, 12.5, 30)
+    tableLamp.position.set(5, 2, 5)
+    tableLamp.castShadow = true
+    tableLamp.shadow.mapSize.width = 512
+    tableLamp.shadow.mapSize.height = 512
+    tableLamp.shadow.camera.near = 0.1
+    tableLamp.shadow.camera.far = 35
+    this.scene.add(tableLamp)
+
+    // Corner accent light - horror shader intensity
+    const cornerLight = new THREE.PointLight(0xffd4a3, 7.5, 25)
+    cornerLight.position.set(-8, 3, -8)
+    this.scene.add(cornerLight)
+
+    // Hallway/entrance light - horror shader intensity
+    const hallwayLight = new THREE.PointLight(0xfff8dc, 10.0, 28)
+    hallwayLight.position.set(-3, 3, 8)
+    this.scene.add(hallwayLight)
+
+    // Moonlight/streetlight through window - horror shader intensity
+    const windowLight = new THREE.DirectionalLight(0x9bb5ff, 5.0)
+    windowLight.position.set(15, 8, 10)
+    windowLight.castShadow = true
+    windowLight.shadow.mapSize.width = 1024
+    windowLight.shadow.mapSize.height = 1024
+    windowLight.shadow.camera.near = 1
+    windowLight.shadow.camera.far = 50
+    this.scene.add(windowLight)
 
     this.createGround()
     this.createReferenceSphere()
